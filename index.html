@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Quiz Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+body {
+    margin:0;
+    height:100vh;
+    font-family:'Press Start 2P', cursive;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+    background:linear-gradient(120deg,#0f0c29,#302b63,#24243e);
+    background-size:600% 600%;
+    animation:gradientBG 15s ease infinite;
+    color:#fff;
+}
+@keyframes gradientBG {0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+.card {
+    background:rgba(0,0,0,0.85);
+    padding:28px;
+    border-radius:20px;
+    max-width:400px;
+    width:90%;
+    text-align:center;
+    box-shadow:0 0 20px #00ffdd,0 0 40px #ff00ff;
+    border:3px solid #00ffdd;
+    position:relative;
+}
+.title{font-size:0.7rem;opacity:0.7;letter-spacing:2px;margin-bottom:12px;text-transform:uppercase;color:#00ffdd;}
+h1{font-size:1.1rem;margin-bottom:20px;color:#fff;}
+button{width:100%;padding:14px;margin:8px 0;border:none;border-radius:14px;font-size:0.8rem;background:#00ffdd;color:#000;font-weight:bold;cursor:pointer;text-shadow:1px 1px #000;box-shadow:0 0 8px #00ffdd;transition:transform 0.1s ease, box-shadow 0.2s ease;}
+button:hover{box-shadow:0 0 15px #00ffdd;}
+button:active{transform:scale(0.97);}
+.shake{animation:shake 0.4s;}
+@keyframes shake{0%{transform:translateX(0);}25%{transform:translateX(-6px);}50%{transform:translateX(6px);}75%{transform:translateX(-6px);}100%{transform:translateX(0);}}
+.correct-msg{color:#4cff91;font-size:1rem;margin-bottom:8px;text-shadow:0 0 8px #4cff91;opacity:0;transition:opacity 0.3s;}
+.countdown{font-size:1.5rem;color:#ffd700;margin-top:8px;font-weight:bold;animation:flash 0.5s infinite;}
+@keyframes flash {0%{opacity:1;}50%{opacity:0;}100%{opacity:1;}}
+.password-box{display:flex;justify-content:center;gap:6px;margin-bottom:12px;opacity:0;transform:translateY(20px);transition:all 0.2s ease;}
+.password-box span{display:inline-block;width:30px;height:40px;line-height:40px;background:#ffd700;color:#000;font-weight:bold;border-radius:4px;text-align:center;text-shadow:0 0 4px #000;font-size:1rem;}
+.chat-text{font-size:0.6rem;margin-bottom:12px;opacity:0;transform:translateY(20px);transition:all 0.2s ease;color:#00ffdd;font-weight:bold;text-shadow:0 0 6px #00ffdd;}
+.tiktok{display:inline-block;margin-top:12px;padding:10px 16px;background:#ff0050;color:white;border-radius:12px;text-decoration:none;font-weight:bold;opacity:0;transform:translateY(20px);transition:all 0.2s ease;position:relative;box-shadow:0 0 8px #ff0050;}
+.arrow{display:inline-block;margin-left:6px;font-size:1rem;opacity:0;transform:translateY(20px);transition:all 0.2s ease;animation:bounce 1s infinite alternate;}
+@keyframes bounce{0%{transform:translateY(0);}100%{transform:translateY(-6px);}}
+canvas{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;}
+.start-button{position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:10px 20px;background:#ff00ff;color:#fff;font-family:'Press Start 2P', cursive;border:none;border-radius:10px;cursor:pointer;z-index:10;box-shadow:0 0 8px #ff00ff;}
+</style>
+</head>
+<body>
+
+<button id="startMusic" class="start-button">TAP TO START MUSIC</button>
+
+<div class="card">
+    <div class="title">CHOOSE THE CORRECT ANSWER</div>
+    <h1 id="question-text">Question will appear here</h1>
+
+    <button onclick="answer(this)">Option 1</button>
+    <button onclick="answer(this)">Option 2</button>
+    <button onclick="answer(this)">Option 3</button>
+
+    <div class="correct-msg" id="correct-msg">CORRECT!</div>
+    <div class="countdown" id="countdown"></div>
+
+    <div class="result" id="result">
+        <div class="password-box" id="password">
+            <span>I</span><span>R</span><span>I</span><span>S</span>
+        </div>
+        <div class="chat-text" id="chat-text">CHAT ME THE PASSWORD</div>
+        <a class="tiktok" id="tiktok" href="https://www.tiktok.com/@yazuetr?_r=1&_t=ZS-92FEEOk1LQT" target="_blank">
+            Open TikTok Profile
+            <span class="arrow" id="arrow">➡️</span>
+        </a>
+    </div>
+</div>
+
+<!-- Audio placeholders -->
+<audio id="bg-music" loop>
+    <source src="bg-music.mp3" type="audio/mpeg">
+</audio>
+<audio id="sound-correct">
+    <source src="correct-sound.mp3" type="audio/mpeg">
+</audio>
+<audio id="sound-wrong">
+    <source src="wrong-sound.mp3" type="audio/mpeg">
+</audio>
+
+<canvas id="confetti"></canvas>
+
+<script>
+const questions = [
+    {text:"WHAT'S MY FAVORITE SONG?", options:["A. PANATA","B. IKAW AT AKO","C. PARALUMAN"], correct:"B"},
+    {text:"WHAT SONG DID I DEDICATE TO YOU?", options:["A. SANCTUARY","B. IKAW AT AKO","C. IRIS"], correct:"C"},
+    {text:"What is 1 + 1?", options:["A. 1","B. 2","C. 3"], correct:"B"},
+    {text:"Which color is the sky?", options:["A. Blue","B. Green","C. Red"], correct:"A"},
+    {text:"Which animal barks?", options:["A. Cat","B. Dog","C. Fish"], correct:"B"}
+];
+
+let currentQuestion = 0;
+const buttons = document.querySelectorAll("button:not(#startMusic)");
+const questionText = document.getElementById("question-text");
+const bgMusic = document.getElementById("bg-music");
+const startBtn = document.getElementById("startMusic");
+const correctMsg = document.getElementById("correct-msg");
+const countdownEl = document.getElementById("countdown");
+
+startBtn.addEventListener("click",()=>{
+    bgMusic.play();
+    startBtn.style.display="none";
+    loadQuestion();
+});
+
+function answer(btn){
+    const soundWrong = document.getElementById("sound-wrong");
+    const soundCorrect = document.getElementById("sound-correct");
+
+    if(btn.innerText.startsWith(questions[currentQuestion].correct)){
+        soundCorrect.play();
+        correctMsg.style.opacity = 1;
+
+        if(currentQuestion === questions.length -1){
+            launchConfetti();
+            const result = document.getElementById("result");
+            result.style.display = "block";
+            document.getElementById("password").style.opacity = 1;
+            document.getElementById("password").style.transform = "translateY(0)";
+            document.getElementById("chat-text").style.opacity = 1;
+            document.getElementById("chat-text").style.transform = "translateY(0)";
+            document.getElementById("tiktok").style.opacity = 1;
+            document.getElementById("tiktok").style.transform = "translateY(0)";
+            document.getElementById("arrow").style.opacity = 1;
+        } else {
+            let countdown = 5;
+            countdownEl.innerText = `${countdown}`;
+            const interval = setInterval(()=>{
+                countdown--;
+                if(countdown > 0){
+                    countdownEl.innerText = `${countdown}`;
+                } else {
+                    clearInterval(interval);
+                    correctMsg.style.opacity = 0;
+                    countdownEl.innerText = '';
+                    currentQuestion++;
+                    loadQuestion();
+                }
+            },1000);
+        }
+    } else{
+        btn.classList.add("shake");
+        soundWrong.play();
+        setTimeout(()=>btn.classList.remove("shake"),400);
+    }
+}
+
+function loadQuestion(){
+    questionText.innerText = questions[currentQuestion].text;
+    buttons.forEach((btn,i)=> btn.innerText = questions[currentQuestion].options[i]);
+}
+
+// Confetti effect
+function launchConfetti(){
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = window.innerWidth;
+    let H = canvas.height = window.innerHeight;
+    const confettiCount = 150;
+    const confetti = [];
+    for(let i=0;i<confettiCount;i++){
+        confetti.push({x:Math.random()*W, y:Math.random()*H-H, r:Math.random()*6+4, d:Math.random()*confettiCount,
+            color:`hsl(${Math.random()*360},100%,50%)`, tilt:Math.random()*10-10, tiltAngleIncrement:Math.random()*0.07+0.05});
+    }
+    let running = true;
+    function draw(){
+        if(!running) return;
+        ctx.clearRect(0,0,W,H);
+        confetti.forEach(c=>{
+            ctx.beginPath();
+            ctx.lineWidth=c.r/2;
+            ctx.strokeStyle=c.color;
+            ctx.moveTo(c.x + c.tilt + c.r/4, c.y);
+            ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r/4);
+            ctx.stroke();
+        });
+        update();
+    }
+    function update(){
+        confetti.forEach(c=>{
+            c.tiltAngle += c.tiltAngleIncrement;
+            c.y += (Math.cos(c.d)+3+c.r/2)/2;
+            c.tilt = Math.sin(c.tiltAngle)*15;
+            if(c.y>H){ c.y=-10; c.x=Math.random()*W; }
+        });
+    }
+    function animate(){ if(running){ draw(); requestAnimationFrame(animate); } }
+    animate();
+    setTimeout(()=>{ running=false; ctx.clearRect(0,0,W,H); },5000);
+    window.addEventListener('resize',()=>{ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; });
+}
+</script>
+
+</body>
+</html>
